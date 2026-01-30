@@ -1,6 +1,14 @@
 # Docker Compose for Fli MCP Server
 # Usage: docker compose up -d
-# MCP endpoint: http://localhost:8000/mcp/
+#
+# MCP endpoints (dual transport mode - default):
+#   SSE:  http://localhost:8000/sse (+ /messages/ for posting)
+#   HTTP: http://localhost:8000/mcp
+#
+# Available transport modes (set via command override):
+#   fli-mcp-dual  - Both SSE and HTTP (default)
+#   fli-mcp-sse   - SSE only
+#   fli-mcp-http  - HTTP only
 
 services:
   fli-mcp:
@@ -19,3 +27,6 @@ services:
       # - FLI_MCP_DEFAULT_SORT_BY=CHEAPEST
       # - FLI_MCP_MAX_RESULTS=10
     restart: unless-stopped
+    # Override transport mode if needed:
+    # command: ["fli-mcp-sse"]   # SSE only
+    # command: ["fli-mcp-http"]  # HTTP only

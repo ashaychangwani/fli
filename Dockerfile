@@ -6,6 +6,12 @@
 # The devcontainer includes dev tools (git, make, act) and dev dependencies,
 # resulting in a larger image (~500MB+). This production Dockerfile creates a
 # minimal image (~350MB) with only runtime dependencies needed to run the MCP server.
+#
+# Available entry points:
+#   fli-mcp-dual  - Both SSE (/sse) and HTTP (/mcp) transports (default)
+#   fli-mcp-sse   - SSE transport only (/sse + /messages/)
+#   fli-mcp-http  - HTTP transport only (/mcp)
+#   fli-mcp       - STDIO transport (for local use)
 
 FROM python:3.10-slim
 
@@ -30,8 +36,8 @@ ENV PATH="/app/.venv/bin:$PATH"
 ENV HOST=0.0.0.0
 ENV PORT=8000
 
-# Expose the MCP HTTP server port
+# Expose the MCP server port
 EXPOSE 8000
 
-# Run the MCP HTTP server
-CMD ["fli-mcp-http"]
+# Run the MCP server with SSE transport (compatible with OpenCode and similar clients)
+CMD ["fli-mcp-sse"]

@@ -151,7 +151,7 @@ class FliMCP(FastMCP):
 
     async def list_tools(self) -> list[Tool]:
         """List all available tools with annotations."""
-        tools = self._tool_manager.list_tools()
+        tools = await self._tool_manager.list_tools()
         return [
             Tool(
                 name=info.name,
@@ -767,14 +767,84 @@ def run():
 
 
 def run_http(host: str = "127.0.0.1", port: int = 8000) -> None:
-    """Run the MCP server over HTTP (streamable)."""
+    """Run the MCP server over HTTP (streamable, stateless).
+
+    Endpoint: /mcp
+
+    Uses stateless mode for compatibility with clients that don't support
+    session management (like OpenCode's type: "remote" configuration).
+    """
     env_host = os.getenv("HOST")
     env_port = os.getenv("PORT")
 
     bind_host = env_host if env_host else host
     bind_port = int(env_port) if env_port else port
 
-    mcp.run(transport="http", host=bind_host, port=bind_port)
+    mcp.run(transport="http", host=bind_host, port=bind_port, stateless_http=True)
+
+
+def run_sse(host: str = "127.0.0.1", port: int = 8000) -> None:
+    """Run the MCP server over SSE (Server-Sent Events).
+
+    Endpoints:
+    - GET /sse - SSE connection endpoint
+    - POST /messages/ - Message posting endpoint
+    """
+    env_host = os.getenv("HOST")
+    env_port = os.getenv("PORT")
+
+    bind_host = env_host if env_host else host
+    bind_port = int(env_port) if env_port else port
+
+    mcp.run(transport="sse", host=bind_host, port=bind_port)
+
+
+def run_dual(host: str = "127.0.0.1", port: int = 8000) -> None:
+    """Run the MCP server with both SSE and HTTP transports.
+
+    This provides maximum compatibility with different MCP clients:
+    - SSE transport (for OpenCode and other SSE-based clients):
+      - GET /sse - SSE connection endpoint
+      - POST /messages/ - Message posting endpoint
+    - HTTP transport (for Streamable-HTTP clients):
+      - /mcp - Streamable HTTP endpoint
+    """
+    import uvicorn
+    from starlette.applications import Starlette
+    from starlette.routing import Route, Mount
+
+    env_host = os.getenv("HOST")
+    env_port = os.getenv("PORT")
+
+    bind_host = env_host if env_host else host
+    bind_port = int(env_port) if env_port else port
+
+    # Create both transport apps
+    http_app = mcp.http_app(transport="http")
+    sse_app = mcp.http_app(transport="sse")
+
+    # Combine routes - we need to use SSE app's lifespan since it's simpler
+    # HTTP app has complex session management that doesn't work well when combined
+    combined_routes = list(sse_app.routes) + list(http_app.routes)
+    app = Starlette(routes=combined_routes, lifespan=sse_app.lifespan)
+
+    # Print banner
+    print(
+        f"\n"
+        f"╭────────────────────────────────────────────────────────────────────────────╮\n"
+        f"│  Flight Search MCP Server (Dual Transport)                                │\n"
+        f"│                                                                            │\n"
+        f"│  SSE Transport:                                                            │\n"
+        f"│    GET  http://{bind_host}:{bind_port}/sse         - SSE connection        │\n"
+        f"│    POST http://{bind_host}:{bind_port}/messages/   - Post messages         │\n"
+        f"│                                                                            │\n"
+        f"│  HTTP Transport:                                                           │\n"
+        f"│    POST http://{bind_host}:{bind_port}/mcp         - Streamable HTTP       │\n"
+        f"╰────────────────────────────────────────────────────────────────────────────╯\n"
+    )
+
+    # Run with uvicorn
+    uvicorn.run(app, host=bind_host, port=bind_port)
 
 
 if __name__ == "__main__":

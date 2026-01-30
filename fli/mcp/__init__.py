@@ -5,7 +5,9 @@ from fli.mcp.server import (
     FlightSearchParams,
     mcp,
     run,
+    run_dual,
     run_http,
+    run_sse,
     search_dates,
     search_flights,
 )
@@ -17,5 +19,7 @@ __all__ = [
     "search_flights",
     "mcp",
     "run",
+    "run_dual",
     "run_http",
+    "run_sse",
 ]

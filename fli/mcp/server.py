@@ -508,27 +508,29 @@ def search_flights(
         Field(description="Sort by: CHEAPEST, DURATION, DEPARTURE_TIME, ARRIVAL_TIME"),
     ] = CONFIG.default_sort_by,
     passengers: Annotated[
-        int | None,
+        int,
         Field(description="Number of adult passengers", ge=1),
-    ] = None,
+    ] = CONFIG.default_passengers,
 ) -> dict[str, Any]:
     """Search for flights between two airports on a specific date.
 
     Returns a list of available flights with prices, durations, and leg details.
     Supports one-way and round-trip searches with various filtering options.
     """
-    effective_departure_window = departure_window or CONFIG.default_departure_window
+    effective_return_date = return_date if return_date else None
+    effective_departure_window = departure_window if departure_window else CONFIG.default_departure_window
+    effective_airlines = airlines if airlines else None
     params = FlightSearchParams(
         origin=origin,
         destination=destination,
         departure_date=departure_date,
-        return_date=return_date,
+        return_date=effective_return_date,
         departure_window=effective_departure_window,
-        airlines=airlines,
+        airlines=effective_airlines,
         cabin_class=cabin_class,
         max_stops=max_stops,
         sort_by=sort_by,
-        passengers=passengers or CONFIG.default_passengers,
+        passengers=passengers,
     )
     return _execute_flight_search(params)
 
@@ -582,16 +584,17 @@ def search_dates(
         Field(description="Sort results by price (lowest first)"),
     ] = False,
     passengers: Annotated[
-        int | None,
+        int,
         Field(description="Number of adult passengers", ge=1),
-    ] = None,
+    ] = CONFIG.default_passengers,
 ) -> dict[str, Any]:
     """Find the cheapest travel dates between two airports within a date range.
 
     Returns a list of dates with their prices, useful for flexible travel planning.
     Supports both one-way and round-trip searches.
     """
-    effective_departure_window = departure_window or CONFIG.default_departure_window
+    effective_departure_window = departure_window if departure_window else CONFIG.default_departure_window
+    effective_airlines = airlines if airlines else None
     params = DateSearchParams(
         origin=origin,
         destination=destination,
@@ -599,12 +602,12 @@ def search_dates(
         end_date=end_date,
         trip_duration=trip_duration,
         is_round_trip=is_round_trip,
-        airlines=airlines,
+        airlines=effective_airlines,
         cabin_class=cabin_class,
         max_stops=max_stops,
         departure_window=effective_departure_window,
         sort_by_price=sort_by_price,
-        passengers=passengers or CONFIG.default_passengers,
+        passengers=passengers,
     )
     return _execute_date_search(params)
 
